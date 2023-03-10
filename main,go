@@ -29,12 +29,9 @@ func main() {
 
 	// First-come, first-serve scheduling
 	FCFSSchedule(os.Stdout, "First-come, first-serve", processes)
-
-	//SJFSchedule(os.Stdout, "Shortest-job-first", processes)
-	//
-	//SJFPrioritySchedule(os.Stdout, "Priority", processes)
-	//
-	//RRSchedule(os.Stdout, "Round-robin", processes)
+	SJFSchedule(os.Stdout, "Shortest-job-first", processes)
+	SJFPrioritySchedule(os.Stdout, "Priority", processes)
+	RRSchedule(os.Stdout, "Round-robin", processes)
 }
 
 func openProcessingFile(args ...string) (*os.File, func(), error) {
@@ -127,11 +124,91 @@ func FCFSSchedule(w io.Writer, title string, processes []Process) {
 	outputSchedule(w, schedule, aveWait, aveTurnaround, aveThroughput)
 }
 
-//func SJFPrioritySchedule(w io.Writer, title string, processes []Process) { }
-//
-//func SJFSchedule(w io.Writer, title string, processes []Process) { }
-//
-//func RRSchedule(w io.Writer, title string, processes []Process) { }
+func SJFPrioritySchedule(w io.Writer, title string, processes []Process) {
+  // Sort the processes by their burst time in ascending order
+    sort.Slice(processes, func(i, j int) bool {
+        return processes[i].BurstTime < processes[j].BurstTime
+    })
+
+    // Call the function to generate the Gantt chart
+    generateGanttChart(w, title, processes)
+}
+
+func SJFSchedule(w io.Writer, title string, processes []Process) { 
+ // Sort the processes by their burst time in ascending order
+    sort.Slice(processes, func(i, j int) bool {
+        return processes[i].BurstTime < processes[j].BurstTime
+    })
+
+    // Call the function to generate the Gantt chart
+    generateGanttChart(w, title, processes)
+}
+
+func RRSchedule(w io.Writer, title string, processes []Process) { 
+  // Initialize the quantum time and current time
+    quantumTime := 2
+    currentTime := 0
+
+    // Create a copy of the processes array to avoid modifying the original
+    processesCopy := make([]Process, len(processes))
+    copy(processesCopy, processes)
+
+    // Create a queue to hold the processes
+    queue := make([]Process, 0)
+
+    // Loop until all processes are completed
+    for len(processesCopy) > 0 {
+        // Add all processes that have arrived to the queue
+        for _, p := range processesCopy {
+            if p.ArrivalTime <= currentTime {
+                queue = append(queue, p)
+            }
+        }
+
+        // If the queue is not empty, process the first process
+        if len(queue) > 0 {
+            // Get the first process in the queue
+            p := queue[0]
+
+            // If the process has not started yet, set its start time to the current time
+            if p.StartTime == -1 {
+                p.StartTime = currentTime
+            }
+
+            // Calculate the remaining time for the process
+            remainingTime := p.BurstTime - p.ProcessedTime
+
+            // If the remaining time is less than the quantum time, process the process for its remaining time
+            if remainingTime <= quantumTime {
+                p.ProcessedTime += remainingTime
+                currentTime += remainingTime
+            } else {
+                // Otherwise, process the process for the quantum time
+                p.ProcessedTime += quantumTime
+                currentTime += quantumTime
+            }
+
+            // If the process is completed, remove it from the queue and add it to the completed processes array
+            if p.ProcessedTime == p.BurstTime {
+                queue = queue[1:]
+                processesCopy = removeProcess(processesCopy, p)
+                p.CompletionTime = currentTime
+                p.TurnaroundTime = p.CompletionTime - p.ArrivalTime
+                p.WaitingTime = p.TurnaroundTime - p.BurstTime
+            } else {
+                // Otherwise, move the process to the end of the queue
+                queue = append(queue[1:], p)
+            }
+        } else {
+            // If the queue is empty, increment the current time
+            currentTime++
+        }
+    }
+
+    // Call the function to generate the Gantt chart
+    generateGanttChart(w, title, processes)
+
+}
 
 //endregion
 
