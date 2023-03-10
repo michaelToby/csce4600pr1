@@ -281,7 +281,6 @@ func mustStrToInt(s string) int64 {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
 	return i
 }
 
